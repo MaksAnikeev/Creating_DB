@@ -9,6 +9,8 @@ from dotenv import load_dotenv
 
 
 def reading_file(path_file: str, loading_function: Callable[[csv.reader, str], None]) -> None:
+    """Функция считывает данные с файла в список списков строк и передает данный список
+     в указанную функцию для загрузки информации в базу данных."""
     file_name = os.path.basename(path_file)
 
     # Открываем CSV файл для чтения
@@ -20,6 +22,7 @@ def reading_file(path_file: str, loading_function: Callable[[csv.reader, str], N
 
 def loading_clients(clients_info: List[Tuple[Any, Any, Any, Any, Any, Any, Any, Any, Any, Any]], file_name: str) \
         -> None:
+    """Функция загружает информацию по клиентам из списка списков в БД"""
     for client in clients_info:
         first_name, last_name, address, phone_number, registration_date, email, deposit_amount, opening_date, \
         closing_date, interest_rate = client
@@ -55,6 +58,7 @@ def loading_clients(clients_info: List[Tuple[Any, Any, Any, Any, Any, Any, Any, 
 
 def loading_companies(companies_info: List[Tuple[Any, Any, Any, Any, Any, Any, Any, Any, Any, Any]], file_name: str) \
         -> None:
+    """Функция загружает информацию по компаниям из списка списков в БД"""
     for company in companies_info:
         name, phone_number, address, registration_date, email, inn, deposit_amount, opening_date, closing_date, \
         interest_rate = company
@@ -89,6 +93,7 @@ def loading_companies(companies_info: List[Tuple[Any, Any, Any, Any, Any, Any, A
 
 
 def loading_bank(bank_info: List[Tuple[str, str, str]], file_name: str) -> None:
+    """Функция загружает банковскую информацию в БД"""
     for bank_data in bank_info:
         name, address, license_number = bank_data
 
@@ -113,7 +118,7 @@ def loading_bank(bank_info: List[Tuple[str, str, str]], file_name: str) -> None:
 
 
 def loading_capital(capital_info: List, file_name: str) -> None:
-
+    """Функция загружает информацию по капиталу банка на разные даты из списка списков в БД"""
     for capital_data in capital_info:
         if len(capital_data) == 3:
             reserve_fund, equity_capital, accumulated_earnings = capital_data
@@ -155,6 +160,7 @@ def loading_capital(capital_info: List, file_name: str) -> None:
 
 def loading_liabilities(liabilities_info: List[Tuple[str, str, str, str, str]],
                         file_name: str) -> None:
+    """Функция загружает информацию по пассивам банка на разные даты из списка списков в БД"""
     for liabilities_data in liabilities_info:
         if len(liabilities_data) == 5:
             financial_instruments_debts, securities_obligations, reporting_data, invoices_to_pay, \
@@ -205,6 +211,7 @@ def loading_liabilities(liabilities_info: List[Tuple[str, str, str, str, str]],
 
 def loading_assets(assets_info: List[Tuple[str, str, str, str, str, str, str]],
                    file_name: str) -> None:
+    """Функция загружает информацию по активам банка на разные даты из списка списков в БД"""
     for assets_data in assets_info:
         if len(assets_data) == 7:
             securities, real_estate, financial_reports, credit_facilities, machinery, debts, equipment = assets_data
