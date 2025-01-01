@@ -1,12 +1,13 @@
 import argparse
+import os
+from datetime import datetime
+from typing import Optional
 
 import psycopg2
-from datetime import datetime
 from dotenv import load_dotenv
-import os
 
 
-def add_companies():
+def add_companies() -> None:
     # Загрузка данных из staging.clients
     cur.execute('SELECT * FROM staging.companies')
     rows = cur.fetchall()
@@ -32,7 +33,7 @@ def add_companies():
             # Добавление данных в dds.clients
             cur.execute('INSERT INTO dds.companies (name,phone_number,address,registration_date,email,inn,'
                         ' timestamp_column) VALUES (%s, %s, %s, %s, %s, %s, %s) RETURNING company_id',
-                        (name, phone_number, address, registration_date, email, inn, timestamp_column ))
+                        (name, phone_number, address, registration_date, email, inn, timestamp_column))
             new_company_id = cur.fetchone()[0]
 
             # Добавление в dds.deposits_clients
@@ -42,7 +43,7 @@ def add_companies():
                                                              interest_rate, new_company_id, timestamp_column))
 
 
-def add_clients():
+def add_clients() -> None:
     # Загрузка данных из staging.companies
     cur.execute('SELECT * FROM staging.clients')
     rows = cur.fetchall()
@@ -73,12 +74,13 @@ def add_clients():
             new_client_id = cur.fetchone()[0]
 
             # Добавление в dds.deposits_clients
-            cur.execute('INSERT INTO dds.deposits_clients (deposit_amount, opening_date, closing_date, interest_rate, client_id, timestamp_column)'
-                        ' VALUES (%s, %s, %s, %s, %s, %s)', (deposit_amount, opening_date, closing_date,
-                                                             interest_rate, new_client_id, timestamp_column))
+            cur.execute(
+                'INSERT INTO dds.deposits_clients (deposit_amount, opening_date, closing_date, interest_rate, client_id, timestamp_column)'
+                ' VALUES (%s, %s, %s, %s, %s, %s)', (deposit_amount, opening_date, closing_date,
+                                                     interest_rate, new_client_id, timestamp_column))
 
 
-def add_bank():
+def add_bank() -> None:
     # Загрузка данных из staging.bank
     cur.execute('SELECT * FROM staging.bank')
     rows = cur.fetchall()
@@ -101,7 +103,7 @@ def add_bank():
                 (name, address, license_number, timestamp_column))
 
 
-def add_capital(history=False, date=None):
+def add_capital(history: bool = False, date: Optional[str] = None) -> None:
     # выбор объекта с последним timestamp_column на текущую дату staging.capital
     if history:
         # Загрузка данных из staging.capital
@@ -177,7 +179,7 @@ def add_capital(history=False, date=None):
                     (reserve_fund, equity_capital, accumulated_earnings, current_date, bank_id))
 
 
-def add_assets(history=False, date=None):
+def add_assets(history: bool = False, date: Optional[str] = None) -> None:
     # выбор объекта с последним timestamp_column на текущую дату staging.general_assets
     if history:
         # Загрузка данных из staging.general_assets
@@ -259,7 +261,7 @@ def add_assets(history=False, date=None):
                      current_date, bank_id))
 
 
-def add_control_liabilities(history=False, date=None):
+def add_control_liabilities(history: bool = False, date: Optional[str] = None) -> None:
     # выбор объекта с последним timestamp_column на текущую дату staging.control_liabilities
     if history:
         # Загрузка данных из staging.general_assets
@@ -291,7 +293,6 @@ def add_control_liabilities(history=False, date=None):
         latest_liabilities = cur.fetchone()
         if latest_liabilities:
             latest_liabilities = [latest_liabilities]
-
 
     if latest_liabilities:
         # Получение последнего объекта из dds.capital для проверки обновления
@@ -416,7 +417,6 @@ if __name__ == '__main__':
                  history_assets - данные о активах банка.
                  all - загрузка всех данных на текущий день.
                  history_all - загрузка всех данных, с последней даты загрузки по текущий день.""")
-
 
     # Сохраняем изменения
     conn.commit()
