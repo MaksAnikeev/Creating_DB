@@ -1,13 +1,14 @@
 import argparse
+import csv
+import os
+from datetime import datetime
+from typing import Any, Callable, List, Tuple
 
 import psycopg2
-import csv
-from datetime import datetime
 from dotenv import load_dotenv
-import os
 
 
-def reading_file(path_file, loading_function):
+def reading_file(path_file: str, loading_function: Callable[[csv.reader, str], None]) -> None:
     file_name = os.path.basename(path_file)
 
     # Открываем CSV файл для чтения
@@ -17,9 +18,10 @@ def reading_file(path_file, loading_function):
         loading_function(reader, file_name)
 
 
-def loading_clients(clients_info, file_name):
+def loading_clients(clients_info: List[Tuple[Any, Any, Any, Any, Any, Any, Any, Any, Any, Any]], file_name: str) \
+        -> None:
     for client in clients_info:
-        first_name, last_name, address, phone_number, registration_date, email, deposit_amount, opening_date,\
+        first_name, last_name, address, phone_number, registration_date, email, deposit_amount, opening_date, \
         closing_date, interest_rate = client
 
         # Проверяем уникальность записи перед загрузкой
@@ -51,9 +53,10 @@ def loading_clients(clients_info, file_name):
                          opening_date, closing_date, interest_rate, file_name, timestamp_column))
 
 
-def loading_companies(companies_info, file_name):
+def loading_companies(companies_info: List[Tuple[Any, Any, Any, Any, Any, Any, Any, Any, Any, Any]], file_name: str) \
+        -> None:
     for company in companies_info:
-        name, phone_number, address, registration_date, email, inn, deposit_amount, opening_date, closing_date,\
+        name, phone_number, address, registration_date, email, inn, deposit_amount, opening_date, closing_date, \
         interest_rate = company
 
         # Проверяем уникальность записи перед загрузкой
@@ -82,10 +85,10 @@ def loading_companies(companies_info, file_name):
                 closing_date, interest_rate, file_name, timestamp_column)
                 VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)""",
                         (name, phone_number, address, registration_date, email, inn, deposit_amount,
-                                        opening_date, closing_date, interest_rate, file_name, timestamp_column))
+                         opening_date, closing_date, interest_rate, file_name, timestamp_column))
 
 
-def loading_bank(bank_info, file_name):
+def loading_bank(bank_info: List[Tuple[str, str, str]], file_name: str) -> None:
     for bank_data in bank_info:
         name, address, license_number = bank_data
 
@@ -109,7 +112,8 @@ def loading_bank(bank_info, file_name):
                         (name, address, license_number, timestamp_column))
 
 
-def loading_capital(capital_info, file_name):
+def loading_capital(capital_info: List, file_name: str) -> None:
+
     for capital_data in capital_info:
         if len(capital_data) == 3:
             reserve_fund, equity_capital, accumulated_earnings = capital_data
@@ -149,7 +153,8 @@ def loading_capital(capital_info, file_name):
                         (reserve_fund, equity_capital, accumulated_earnings, file_name, timestamp_column))
 
 
-def loading_liabilities(liabilities_info, file_name):
+def loading_liabilities(liabilities_info: List[Tuple[str, str, str, str, str]],
+                        file_name: str) -> None:
     for liabilities_data in liabilities_info:
         if len(liabilities_data) == 5:
             financial_instruments_debts, securities_obligations, reporting_data, invoices_to_pay, \
@@ -169,7 +174,7 @@ def loading_liabilities(liabilities_info, file_name):
             existing_record = cur.fetchone()
 
         elif len(liabilities_data) == 6:
-            financial_instruments_debts, securities_obligations, reporting_data, invoices_to_pay,\
+            financial_instruments_debts, securities_obligations, reporting_data, invoices_to_pay, \
             funds_in_accounts, timestamp_column = liabilities_data
             cur.execute("""
                         SELECT id FROM staging.control_liabilities
@@ -198,7 +203,8 @@ def loading_liabilities(liabilities_info, file_name):
                          funds_in_accounts, file_name, timestamp_column))
 
 
-def loading_assets(assets_info, file_name):
+def loading_assets(assets_info: List[Tuple[str, str, str, str, str, str, str]],
+                   file_name: str) -> None:
     for assets_data in assets_info:
         if len(assets_data) == 7:
             securities, real_estate, financial_reports, credit_facilities, machinery, debts, equipment = assets_data
@@ -214,7 +220,7 @@ def loading_assets(assets_info, file_name):
                         AND debts = %s
                         AND equipment = %s
                         """, (securities, real_estate, financial_reports, credit_facilities,
-                                                       machinery, debts, equipment))
+                              machinery, debts, equipment))
 
             existing_record = cur.fetchone()
         elif len(assets_data) == 8:
