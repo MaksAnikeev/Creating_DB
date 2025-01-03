@@ -86,6 +86,10 @@ touch .env
 
 В `.env` записываем пути до файлов с исходными данными, а также параметры для подключения к вашей БД (базе данных)
 
+`DELTA_DAYS` - это количество дней в которых будут искаться данные, если нет данных на текущее число. 
+Пример, если сегодня 25.12.24, но данных по активам, пассивам или капиталу нет на это число, то программа будет проверять эти данные на 
+24.12.24 и т.д. на количество дней, указанных в `DELTA_DAYS`, если не найдет, то значение будет None
+
 ```pycon
 DB_NAME="pomidor"
 DB_HOST="localhost"
@@ -97,6 +101,7 @@ PATH_BANK="loading_files/bank.csv"
 PATH_CAPITAL="loading_files/capital.csv"
 PATH_LIABILITIES="loading_files/liabilities.csv"
 PATH_ASSETS="loading_files/assets.csv"
+DELTA_DAYS=10
 ```
 
 ### 4. Создание структуры БД:

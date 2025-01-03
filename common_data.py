@@ -1,12 +1,13 @@
 import argparse
+import os
+from datetime import datetime, timedelta
+from typing import Optional, Tuple
 
 import psycopg2
-from datetime import datetime, timedelta
 from dotenv import load_dotenv
-import os
 
 
-def create_common_data(date):
+def create_common_data(date: str) -> None:
     # Проверка есть ли уже в базе указанная дата, если есть, то загрузка данных на эту дату не будет производиться
     date_obj = datetime.strptime(date, "%Y-%m-%d").date()
     if date_obj not in dates:
@@ -22,7 +23,7 @@ def create_common_data(date):
                      bank_total_capital, date))
 
 
-def sum_deposits(date):
+def sum_deposits(date: str) -> Tuple[float, float]:
     cur.execute("""
             SELECT COALESCE(SUM(deposit_amount), 0) 
             FROM dwh.deposits_clients
@@ -41,9 +42,9 @@ def sum_deposits(date):
     return client_deposits_total, company_deposits_total
 
 
-def sum_liabilities(date):
+def sum_liabilities(date: str) -> Optional[float]:
     search_date = datetime.strptime(date, '%Y-%m-%d') + timedelta(days=1)
-    for i in range(40):
+    for i in range(delta_days):
         cur.execute("""
                 WITH closest_date AS (
                     SELECT *
@@ -72,9 +73,9 @@ def sum_liabilities(date):
     return None
 
 
-def sum_assests(date):
+def sum_assests(date: str) -> Optional[float]:
     search_date = datetime.strptime(date, '%Y-%m-%d') + timedelta(days=1)
-    for i in range(40):
+    for i in range(delta_days):
         cur.execute("""
                     WITH closest_date AS (
                         SELECT *
@@ -105,9 +106,9 @@ def sum_assests(date):
     return None
 
 
-def sum_capital(date):
+def sum_capital(date: str) -> Optional[float]:
     search_date = datetime.strptime(date, '%Y-%m-%d') + timedelta(days=1)
-    for i in range(40):
+    for i in range(delta_days):
         cur.execute("""
                     WITH closest_date AS (
                         SELECT *
@@ -141,6 +142,7 @@ if __name__ == '__main__':
     db_host = os.getenv("DB_HOST")
     db_user = os.getenv("DB_USER")
     db_pass = os.getenv("DB_PASS")
+    delta_days = int(os.getenv("DELTA_DAYS"))
 
     # Использование парсера
     parser = argparse.ArgumentParser()
