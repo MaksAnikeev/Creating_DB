@@ -1,12 +1,13 @@
 import argparse
+import os
+from datetime import datetime
+from typing import Optional
 
 import psycopg2
-from datetime import datetime
 from dotenv import load_dotenv
-import os
 
 
-def add_companies():
+def add_companies() -> None:
     cur.execute('SELECT * FROM dds.companies')
     rows = cur.fetchall()
 
@@ -53,7 +54,7 @@ def add_companies():
                                                              interest_rate, new_company_id, timestamp_column))
 
 
-def add_clients():
+def add_clients() -> None:
     cur.execute('SELECT * FROM dds.clients')
     rows = cur.fetchall()
 
@@ -101,7 +102,7 @@ def add_clients():
                                                              interest_rate, new_client_id, timestamp_column))
 
 
-def add_bank():
+def add_bank() -> None:
     # Выборка данных из таблицы dds.bank, которых нет в таблице dwh.bank
     cur.execute(f"""
         SELECT *
@@ -129,7 +130,7 @@ def add_bank():
         """, bank_data)
 
 
-def add_capital(target_date=None):
+def add_capital(target_date: Optional[str] = None) -> None:
     # Формирование условия для выборки по дате, если указана
     date_condition = f"timestamp_column::date = '{target_date}'" if target_date else "TRUE"
 
@@ -163,7 +164,7 @@ def add_capital(target_date=None):
         """, bank_data)
 
 
-def add_assets(target_date=None):
+def add_assets(target_date: Optional[str] = None) -> None:
     # Формирование условия для выборки по дате, если указана
     date_condition = f"timestamp_column::date = '{target_date}'" if target_date else "TRUE"
 
@@ -202,7 +203,7 @@ def add_assets(target_date=None):
         """, bank_data)
 
 
-def add_control_liabilities(target_date=None):
+def add_control_liabilities(target_date: Optional[str] = None) -> None:
     # Формирование условия для выборки по дате, если указана
     date_condition = f"timestamp_column::date = '{target_date}'" if target_date else "TRUE"
 
