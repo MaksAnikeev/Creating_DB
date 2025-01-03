@@ -24,6 +24,7 @@ def create_common_data(date: str) -> None:
 
 
 def sum_deposits(date: str) -> Tuple[float, float]:
+    # рассчитываем сумму депозитов клиентов, которые открыты и не закрыты на указанную дату
     cur.execute("""
             SELECT COALESCE(SUM(deposit_amount), 0) 
             FROM dwh.deposits_clients
@@ -32,6 +33,7 @@ def sum_deposits(date: str) -> Tuple[float, float]:
         """, (date, date))
     client_deposits_total = cur.fetchone()[0]
 
+    # рассчитываем сумму депозитов компаний, которые открыты и не закрыты на указанную дату
     cur.execute("""
                 SELECT COALESCE(SUM(deposit_amount), 0) 
                 FROM dwh.deposits_companies
@@ -43,7 +45,9 @@ def sum_deposits(date: str) -> Tuple[float, float]:
 
 
 def sum_liabilities(date: str) -> Optional[float]:
+    # определяем дату, на которую будет производится поиск данных
     search_date = datetime.strptime(date, '%Y-%m-%d') + timedelta(days=1)
+    # идем по циклу с проверкой на какую дату из диапазона delta_days найдутся данные по пассивам банка
     for i in range(delta_days):
         cur.execute("""
                 WITH closest_date AS (
@@ -57,6 +61,7 @@ def sum_liabilities(date: str) -> Optional[float]:
             """, (search_date.strftime('%Y-%m-%d'),))
         liability = cur.fetchone()
 
+        # присваиваем переменным соответствующие значения из найденного объекта
         if liability:
             financial_instruments_debts = liability[1]
             securities_obligations = liability[2]
@@ -64,6 +69,7 @@ def sum_liabilities(date: str) -> Optional[float]:
             invoices_to_pay = liability[4]
             funds_in_accounts = liability[5]
 
+            # расчет суммарных пассивов банка на указанную дату
             bank_total_liabilities = financial_instruments_debts + securities_obligations + reporting_data + \
                                      invoices_to_pay + funds_in_accounts
             return bank_total_liabilities
@@ -74,7 +80,9 @@ def sum_liabilities(date: str) -> Optional[float]:
 
 
 def sum_assests(date: str) -> Optional[float]:
+    # определяем дату, на которую будет производится поиск данных
     search_date = datetime.strptime(date, '%Y-%m-%d') + timedelta(days=1)
+    # идем по циклу с проверкой на какую дату из диапазона delta_days найдутся данные по активам банка
     for i in range(delta_days):
         cur.execute("""
                     WITH closest_date AS (
@@ -88,6 +96,7 @@ def sum_assests(date: str) -> Optional[float]:
                 """, (search_date.strftime('%Y-%m-%d'),))
         assets = cur.fetchone()
 
+        # присваиваем переменным соответствующие значения из найденного объекта
         if assets:
             securities = assets[1]
             real_estate = assets[2]
@@ -97,6 +106,7 @@ def sum_assests(date: str) -> Optional[float]:
             debts = assets[6]
             equipment = assets[7]
 
+            # расчет суммарных активов банка на указанную дату
             bank_total_assets = securities + real_estate + financial_reports + credit_facilities + machinery + \
                            debts + equipment
             return bank_total_assets
@@ -107,7 +117,9 @@ def sum_assests(date: str) -> Optional[float]:
 
 
 def sum_capital(date: str) -> Optional[float]:
+    # определяем дату, на которую будет производится поиск данных
     search_date = datetime.strptime(date, '%Y-%m-%d') + timedelta(days=1)
+    # идем по циклу с проверкой на какую дату из диапазона delta_days найдутся данные по капиталу банка
     for i in range(delta_days):
         cur.execute("""
                     WITH closest_date AS (
@@ -121,11 +133,13 @@ def sum_capital(date: str) -> Optional[float]:
                 """, (search_date.strftime('%Y-%m-%d'),))
         capital = cur.fetchone()
 
+        # присваиваем переменным соответствующие значения из найденного объекта
         if capital:
             reserve_fund = capital[1]
             equity_capital = capital[2]
             accumulated_earnings = capital[3]
 
+            # расчет суммарного капитала банка на указанную дату
             bank_total_capital = reserve_fund + equity_capital + accumulated_earnings
             return bank_total_capital
 
@@ -181,6 +195,7 @@ if __name__ == '__main__':
     cur.execute("SELECT date FROM dwh.common_data")
     dates = [row[0] for row in cur.fetchall()]
 
+    # расчет показателей при указании диапазона дат при запуске ETL (функции)
     if args.start_date_str and args.end_date_str and args.step:
         start_date = datetime.strptime(args.start_date_str, '%Y-%m-%d')
         end_date = datetime.strptime(args.end_date_str, '%Y-%m-%d')
