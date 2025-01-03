@@ -1,15 +1,18 @@
 import argparse
+import os
+from datetime import datetime
+from typing import Optional
 
 import psycopg2
-from datetime import datetime
 from dotenv import load_dotenv
-import os
 
 
-def add_data_mart(standard_n1_0, standard_n1_1, standard_n1_2, date=None):
+def add_data_mart(standard_n1_0: float, standard_n1_1: float, standard_n1_2: float, date: Optional[str] = None) -> None:
+    # расчет данных по указанной дате
     if date != 'None' and date:
         cur.execute('SELECT * FROM dwh.common_data WHERE "date" = %s', (date,))
         rows = cur.fetchall()
+    # расчет показателей на все даты, указанные в БД
     else:
         cur.execute('SELECT * FROM dwh.common_data')
         rows = cur.fetchall()
