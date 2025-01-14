@@ -1,10 +1,16 @@
 import argparse
+import logging
 import os
 from datetime import datetime
+from logging.handlers import RotatingFileHandler
 from typing import Optional
 
 import psycopg2
 from dotenv import load_dotenv
+
+
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
 
 
 def add_companies() -> None:
@@ -241,6 +247,18 @@ def add_control_liabilities(target_date: Optional[str] = None) -> None:
 
 
 if __name__ == '__main__':
+    # Запись логов в файл
+    file_handler = RotatingFileHandler(os.path.join('logs', 'add_to_dwh.log'),
+                                       maxBytes=2*1024*1024,
+                                       backupCount=1)
+    file_handler.setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
+    logger.addHandler(file_handler)
+
+    # Вывод логов в консоль
+    console_handler = logging.StreamHandler()
+    console_handler.setLevel(logging.INFO)
+    logger.addHandler(console_handler)
+
     # Использование переменных окружения
     load_dotenv()
 
@@ -277,37 +295,41 @@ if __name__ == '__main__':
     )
     cur = conn.cursor()
 
-    if args.target_date == 'target_capital':
-        add_capital(target_date=args.date)
-        print("Данные о капитале банка на все ранее не загруженные даты - загружены. "
-              "Если вы ввели конкретную дату, то данные на эту дату загружены.")
-    if args.target_date == 'target_liabilities':
-        add_control_liabilities(target_date=args.date)
-        print("Данные о пассивах банка на все ранее не загруженные даты - загружены."
-              "Если вы ввели конкретную дату, то данные на эту дату загружены.")
-    if args.target_date == 'target_assets':
-        add_assets(target_date=args.date)
-        print("Данные об активах банка на все ранее не загруженные даты - загружены. "
-              "Если вы ввели конкретную дату, то данные на эту дату загружены.")
+    try:
+        if args.target_date == 'target_capital':
+            add_capital(target_date=args.date)
+            logger.info("Данные о капитале банка на все ранее не загруженные даты - загружены. "
+                        "Если вы ввели конкретную дату, то данные на эту дату загружены.")
+        if args.target_date == 'target_liabilities':
+            add_control_liabilities(target_date=args.date)
+            logger.info("Данные о пассивах банка на все ранее не загруженные даты - загружены."
+                        "Если вы ввели конкретную дату, то данные на эту дату загружены.")
+        if args.target_date == 'target_assets':
+            add_assets(target_date=args.date)
+            logger.info("Данные об активах банка на все ранее не загруженные даты - загружены. "
+                        "Если вы ввели конкретную дату, то данные на эту дату загружены.")
 
-    if args.target_date == 'all':
-        add_clients()
-        add_companies()
-        add_bank()
-        add_capital()
-        add_assets()
-        add_control_liabilities()
-        print("Все данные на все ранее не загруженные даты - загружены."
-              "Если вы ввели конкретную дату, то данные на эту дату загружены.")
+        if args.target_date == 'all':
+            add_clients()
+            add_companies()
+            add_bank()
+            add_capital()
+            add_assets()
+            add_control_liabilities()
+            logger.info("Все данные на все ранее не загруженные даты - загружены."
+                        "Если вы ввели конкретную дату, то данные на эту дату загружены.")
 
-    if args.target_date == 'current_all':
-        add_clients()
-        add_companies()
-        add_bank()
-        add_capital(target_date=args.date)
-        add_assets(target_date=args.date)
-        add_control_liabilities(target_date=args.date)
-        print("Все данные загружены на текущую дату.")
+        if args.target_date == 'current_all':
+            add_clients()
+            add_companies()
+            add_bank()
+            add_capital(target_date=args.date)
+            add_assets(target_date=args.date)
+            add_control_liabilities(target_date=args.date)
+            logger.info("Все данные загружены на текущую дату.")
+
+    except Exception as e:
+        logger.exception("Произошла ошибка во время выполнения файла: %s", e)
 
     # Сохраняем изменения
     conn.commit()
