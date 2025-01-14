@@ -1,11 +1,17 @@
 import argparse
 import csv
 import os
+import logging
 from datetime import datetime
+from logging.handlers import RotatingFileHandler
 from typing import Any, Callable, List, Tuple
 
 import psycopg2
 from dotenv import load_dotenv
+
+
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
 
 
 def reading_file(path_file: str, loading_function: Callable[[csv.reader, str], None]) -> None:
@@ -146,7 +152,7 @@ def loading_capital(capital_info: List, file_name: str) -> None:
 
             existing_record = cur.fetchone()
         else:
-            print("Incorrect number of values in capital_data")
+            logger.warning("Incorrect number of values in liabilities_data")
             continue
 
         if existing_record is None:
@@ -195,7 +201,7 @@ def loading_liabilities(liabilities_info: List[Tuple[str, str, str, str, str]],
 
             existing_record = cur.fetchone()
         else:
-            print("Incorrect number of values in capital_data")
+            logger.warning("Incorrect number of values in liabilities_data")
             continue
 
         if existing_record is None:
@@ -248,7 +254,7 @@ def loading_assets(assets_info: List[Tuple[str, str, str, str, str, str, str]],
 
             existing_record = cur.fetchone()
         else:
-            print("Incorrect number of values in capital_data")
+            logger.warning("Incorrect number of values in assets_data")
             continue
 
         if existing_record is None:
@@ -263,6 +269,18 @@ def loading_assets(assets_info: List[Tuple[str, str, str, str, str, str, str]],
 
 
 if __name__ == '__main__':
+    # Запись логов в файл
+    file_handler = RotatingFileHandler(os.path.join('logs', 'loading_from_file.log'),
+                                       maxBytes=2*1024*1024,
+                                       backupCount=1)
+    file_handler.setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
+    logger.addHandler(file_handler)
+
+    # Вывод логов в консоль
+    console_handler = logging.StreamHandler()
+    console_handler.setLevel(logging.INFO)
+    logger.addHandler(console_handler)
+
     # Использование переменных окружения
     load_dotenv()
 
@@ -302,48 +320,52 @@ if __name__ == '__main__':
     )
     cur = conn.cursor()
 
-    if args.loading == 'clients':
-        reading_file(path_file=path_clients, loading_function=loading_clients)
-        print('Загрузка данных клиентов в БД успешно завершена')
+    try:
+        if args.loading == 'clients':
+            reading_file(path_file=path_clients, loading_function=loading_clients)
+            logger.info("Загрузка данных клиентов в БД успешно завершена")
 
-    elif args.loading == 'companies':
-        reading_file(path_file=path_companies, loading_function=loading_companies)
-        print('Загрузка данных компаний в БД успешно завершена')
+        elif args.loading == 'companies':
+            reading_file(path_file=path_companies, loading_function=loading_companies)
+            logger.info("Загрузка данных компаний в БД успешно завершена")
 
-    elif args.loading == 'bank':
-        reading_file(path_file=path_bank, loading_function=loading_bank)
-        print('Загрузка данных о банке в БД успешно завершена')
+        elif args.loading == 'bank':
+            reading_file(path_file=path_bank, loading_function=loading_bank)
+            logger.info("Загрузка данных о банке в БД успешно завершена")
 
-    elif args.loading == 'capital':
-        reading_file(path_file=path_capital, loading_function=loading_capital)
-        print('Загрузка данных о капитале банка в БД успешно завершена')
+        elif args.loading == 'capital':
+            reading_file(path_file=path_capital, loading_function=loading_capital)
+            logger.info("Загрузка данных о капитале банка в БД успешно завершена")
 
-    elif args.loading == 'liabilities':
-        reading_file(path_file=path_liabilities, loading_function=loading_liabilities)
-        print('Загрузка данных о пассивах банка в БД успешно завершена')
+        elif args.loading == 'liabilities':
+            reading_file(path_file=path_liabilities, loading_function=loading_liabilities)
+            logger.info("Загрузка данных о пассивах банка в БД успешно завершена")
 
-    elif args.loading == 'assets':
-        reading_file(path_file=path_assets, loading_function=loading_assets)
-        print('Загрузка данных о активах банка в БД успешно завершена')
+        elif args.loading == 'assets':
+            reading_file(path_file=path_assets, loading_function=loading_assets)
+            logger.info("Загрузка данных о активах банка в БД успешно завершена")
 
-    elif args.loading == 'all':
-        reading_file(path_file=path_clients, loading_function=loading_clients)
-        reading_file(path_file=path_companies, loading_function=loading_companies)
-        reading_file(path_file=path_bank, loading_function=loading_bank)
-        reading_file(path_file=path_capital, loading_function=loading_capital)
-        reading_file(path_file=path_liabilities, loading_function=loading_liabilities)
-        reading_file(path_file=path_assets, loading_function=loading_assets)
-        print('Загрузка всех данных в БД успешно завершена')
+        elif args.loading == 'all':
+            reading_file(path_file=path_clients, loading_function=loading_clients)
+            reading_file(path_file=path_companies, loading_function=loading_companies)
+            reading_file(path_file=path_bank, loading_function=loading_bank)
+            reading_file(path_file=path_capital, loading_function=loading_capital)
+            reading_file(path_file=path_liabilities, loading_function=loading_liabilities)
+            reading_file(path_file=path_assets, loading_function=loading_assets)
+            logger.info("Загрузка всех данных в БД успешно завершена")
 
-    else:
-        print("""Вы ввели некорректный параметр. Введите:
-              сlients - загрузка данных клиентов.
-              companies - загрузка данных компаний.
-              bank - загрузка информации о банке.'
-              capital - загрузка данных о капитале банка.
-              liabilities - загрузка данных о пасивах банка.
-              assets - загрузка данных о активах банка.
-              all - загрузка всех данных в БД.""")
+        else:
+            logger.warning("""Вы ввели некорректный параметр. Введите:
+                  сlients - загрузка данных клиентов.
+                  companies - загрузка данных компаний.
+                  bank - загрузка информации о банке.'
+                  capital - загрузка данных о капитале банка.
+                  liabilities - загрузка данных о пасивах банка.
+                  assets - загрузка данных о активах банка.
+                  all - загрузка всех данных в БД.""")
+
+    except Exception as e:
+        logger.exception("Произошла ошибка во время чтения файла: %s", e)
 
     # Сохраняем изменения
     conn.commit()
