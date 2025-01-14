@@ -1,10 +1,16 @@
 import argparse
 import os
+import logging
 from datetime import datetime, timedelta
+from logging.handlers import RotatingFileHandler
 from typing import Optional, Tuple
 
 import psycopg2
 from dotenv import load_dotenv
+
+
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
 
 
 def create_common_data(date: str) -> None:
@@ -149,6 +155,18 @@ def sum_capital(date: str) -> Optional[float]:
 
 
 if __name__ == '__main__':
+    # Запись логов в файл
+    file_handler = RotatingFileHandler(os.path.join('logs', 'common_data.log'),
+                                       maxBytes=2*1024*1024,
+                                       backupCount=1)
+    file_handler.setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
+    logger.addHandler(file_handler)
+
+    # Вывод логов в консоль
+    console_handler = logging.StreamHandler()
+    console_handler.setLevel(logging.INFO)
+    logger.addHandler(console_handler)
+
     # Использование переменных окружения
     load_dotenv()
 
@@ -196,18 +214,22 @@ if __name__ == '__main__':
     dates = [row[0] for row in cur.fetchall()]
 
     # расчет показателей при указании диапазона дат при запуске ETL (функции)
-    if args.start_date_str and args.end_date_str and args.step:
-        start_date = datetime.strptime(args.start_date_str, '%Y-%m-%d')
-        end_date = datetime.strptime(args.end_date_str, '%Y-%m-%d')
+    try:
+        if args.start_date_str and args.end_date_str and args.step:
+            start_date = datetime.strptime(args.start_date_str, '%Y-%m-%d')
+            end_date = datetime.strptime(args.end_date_str, '%Y-%m-%d')
 
-        current_date = start_date
-        while current_date <= end_date:
-            create_common_data(current_date.strftime('%Y-%m-%d'))
-            current_date += timedelta(days=args.step)
-        print("Данные на все даты, указанные в заданном периоде, рассчитаны и загружены")
-    else:
-        create_common_data(args.date)
-        print(f"Данные на {args.date} рассчитаны и загружены.")
+            current_date = start_date
+            while current_date <= end_date:
+                create_common_data(current_date.strftime('%Y-%m-%d'))
+                current_date += timedelta(days=args.step)
+            logger.info("Данные на все даты, указанные в заданном периоде, рассчитаны и загружены")
+        else:
+            create_common_data(args.date)
+            logger.info(f"Данные на {args.date} рассчитаны и загружены.")
+
+    except Exception as e:
+        logger.exception("Произошла ошибка во время выполнения файла: %s", e)
 
     # Сохраняем изменения
     conn.commit()
