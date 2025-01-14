@@ -1,7 +1,7 @@
 import argparse
 import csv
-import os
 import logging
+import os
 from datetime import datetime
 from logging.handlers import RotatingFileHandler
 from typing import Any, Callable, List, Tuple
@@ -365,7 +365,7 @@ if __name__ == '__main__':
                   all - загрузка всех данных в БД.""")
 
     except Exception as e:
-        logger.exception("Произошла ошибка во время чтения файла: %s", e)
+        logger.exception("Произошла ошибка во время выполнения файла: %s", e)
 
     # Сохраняем изменения
     conn.commit()

@@ -1,10 +1,16 @@
 import argparse
+import logging
 import os
 from datetime import datetime
+from logging.handlers import RotatingFileHandler
 from typing import Optional
 
 import psycopg2
 from dotenv import load_dotenv
+
+
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
 
 
 def add_companies() -> None:
@@ -341,6 +347,18 @@ def add_control_liabilities(history: bool = False, date: Optional[str] = None) -
 
 
 if __name__ == '__main__':
+    # Запись логов в файл
+    file_handler = RotatingFileHandler(os.path.join('logs', 'add_to_dds.log'),
+                                       maxBytes=2*1024*1024,
+                                       backupCount=1)
+    file_handler.setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
+    logger.addHandler(file_handler)
+
+    # Вывод логов в консоль
+    console_handler = logging.StreamHandler()
+    console_handler.setLevel(logging.INFO)
+    logger.addHandler(console_handler)
+
     # Использование переменных окружения
     load_dotenv()
 
@@ -377,46 +395,51 @@ if __name__ == '__main__':
     )
     cur = conn.cursor()
 
-    if args.history == 'history_capital':
-        add_capital(history=True)
-        print('Загрузка данных по капиталу с момента последней загрузки, до текущего момента - завершена.')
-    elif args.history == 'history_liabilities':
-        add_control_liabilities(history=True)
-        print('Загрузка данных по активам с момента последней загрузки, до текущего момента - завершена.')
-    elif args.history == 'history_assets':
-        add_assets(history=True)
-        print('Загрузка данных по пассивам с момента последней загрузки, до текущего момента - завершена.')
-    elif args.history == 'all':
-        add_clients()
-        add_companies()
-        add_bank()
-        add_capital()
-        add_assets()
-        add_control_liabilities()
-        print('Загрузка всех данных по текущей дате - завершена.')
-    elif args.history == 'history_all':
-        add_clients()
-        add_companies()
-        add_bank()
-        add_capital(history=True)
-        add_assets(history=True)
-        add_control_liabilities(history=True)
-        print('Загрузка всех с момента последней загрузки, до текущего момента - завершена.')
-    elif args.history == 'None' and args.date:
-        add_clients()
-        add_companies()
-        add_bank()
-        add_control_liabilities(history=False, date=args.date)
-        add_capital(history=False, date=args.date)
-        add_assets(history=False, date=args.date)
+    try:
+        if args.history == 'history_capital':
+            add_capital(history=True)
+            logger.info('Загрузка данных по капиталу с момента последней загрузки, до текущего момента - завершена.')
+        elif args.history == 'history_liabilities':
+            add_control_liabilities(history=True)
+            logger.info('Загрузка данных по активам с момента последней загрузки, до текущего момента - завершена.')
+        elif args.history == 'history_assets':
+            add_assets(history=True)
+            logger.info('Загрузка данных по пассивам с момента последней загрузки, до текущего момента - завершена.')
+        elif args.history == 'all':
+            add_clients()
+            add_companies()
+            add_bank()
+            add_capital()
+            add_assets()
+            add_control_liabilities()
+            logger.info('Загрузка всех данных по текущей дате - завершена.')
+        elif args.history == 'history_all':
+            add_clients()
+            add_companies()
+            add_bank()
+            add_capital(history=True)
+            add_assets(history=True)
+            add_control_liabilities(history=True)
+            logger.info('Загрузка всех с момента последней загрузки, до текущего момента - завершена.')
+        elif args.history == 'None' and args.date:
+            add_clients()
+            add_companies()
+            add_bank()
+            add_control_liabilities(history=False, date=args.date)
+            add_capital(history=False, date=args.date)
+            add_assets(history=False, date=args.date)
+            logger.info('Загрузка данных на указанную дату - завершена.')
 
-    else:
-        print("""Вы ввели некорректный параметр. Введите:
-                 history_capital - данные о капитале банка
-                 history_liabilities - данные о пассивах банка.
-                 history_assets - данные о активах банка.
-                 all - загрузка всех данных на текущий день.
-                 history_all - загрузка всех данных, с последней даты загрузки по текущий день.""")
+        else:
+            logger.warning("""Вы ввели некорректный параметр. Введите:
+                     history_capital - данные о капитале банка
+                     history_liabilities - данные о пассивах банка.
+                     history_assets - данные о активах банка.
+                     all - загрузка всех данных на текущий день.
+                     history_all - загрузка всех данных, с последней даты загрузки по текущий день.""")
+
+    except Exception as e:
+        logger.exception("Произошла ошибка во время выполнения файла: %s", e)
 
     # Сохраняем изменения
     conn.commit()
