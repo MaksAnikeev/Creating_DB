@@ -1,10 +1,16 @@
 import argparse
+import logging
 import os
 from datetime import datetime
+from logging.handlers import RotatingFileHandler
 from typing import Optional
 
 import psycopg2
 from dotenv import load_dotenv
+
+
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
 
 
 def add_data_mart(standard_n1_0: float, standard_n1_1: float, standard_n1_2: float, date: Optional[str] = None) -> None:
@@ -56,6 +62,18 @@ def add_data_mart(standard_n1_0: float, standard_n1_1: float, standard_n1_2: flo
 
 
 if __name__ == '__main__':
+    # Запись логов в файл
+    file_handler = RotatingFileHandler(os.path.join('logs', 'data_mart.log'),
+                                       maxBytes=2*1024*1024,
+                                       backupCount=1)
+    file_handler.setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
+    logger.addHandler(file_handler)
+
+    # Вывод логов в консоль
+    console_handler = logging.StreamHandler()
+    console_handler.setLevel(logging.INFO)
+    logger.addHandler(console_handler)
+
     # Использование переменных окружения
     load_dotenv()
 
@@ -101,14 +119,18 @@ if __name__ == '__main__':
     cur = conn.cursor()
 
     # Получаем список дат, уже существующих в common_data, чтобы не задваивать информацию
-    cur.execute("SELECT date FROM data_mart.params")
-    dates = [row[0] for row in cur.fetchall()]
+    try:
+        cur.execute("SELECT date FROM data_mart.params")
+        dates = [row[0] for row in cur.fetchall()]
 
-    add_data_mart(args.standard_n1_0, args.standard_n1_1, args.standard_n1_2, args.date)
-    if args.date == 'None':
-        print(f"Все отсутствующие данные загружены в витрину. Обновите PowerBi")
-    else:
-        print(f"Данные на {args.date} загружены в витрину. Обновите PowerBi")
+        add_data_mart(args.standard_n1_0, args.standard_n1_1, args.standard_n1_2, args.date)
+        if args.date == 'None':
+            logger.info(f"Все отсутствующие данные загружены в витрину. Обновите PowerBi")
+        else:
+            logger.info(f"Данные на {args.date} загружены в витрину. Обновите PowerBi")
+
+    except Exception as e:
+        logger.exception("Произошла ошибка во время выполнения файла: %s", e)
 
     # Сохраняем изменения
     conn.commit()
