@@ -14,7 +14,7 @@ logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 
-def reading_file(path_file: str, loading_function: Callable[[csv.reader, str], None]) -> None:
+def reading_file(path_file: str, loading_function: Callable[[csv.reader, str, Any], None], cur: Any):
     """Функция считывает данные с файла в список списков строк и передает данный список
      в указанную функцию для загрузки информации в базу данных."""
     file_name = os.path.basename(path_file)
@@ -23,11 +23,12 @@ def reading_file(path_file: str, loading_function: Callable[[csv.reader, str], N
     with open(path_file, 'r', newline='', encoding='utf-8') as file:
         reader = csv.reader(file)
         next(reader)  # Пропускаем заголовок
-        loading_function(reader, file_name)
+        loading_function(reader, file_name, cur)
+    return reader, file_name
 
 
-def loading_clients(clients_info: List[Tuple[Any, Any, Any, Any, Any, Any, Any, Any, Any, Any]], file_name: str) \
-        -> None:
+def loading_clients(clients_info: List[Tuple[Any, Any, Any, Any, Any, Any, Any, Any, Any, Any]], file_name: str,
+                    cur: Any) -> None:
     """Функция загружает информацию по клиентам из списка списков в БД"""
     for client in clients_info:
         first_name, last_name, address, phone_number, registration_date, email, deposit_amount, opening_date, \
@@ -53,17 +54,15 @@ def loading_clients(clients_info: List[Tuple[Any, Any, Any, Any, Any, Any, Any, 
             timestamp_column = datetime.now()
 
             # Вставляем новую запись
-            cur.execute("""
-                INSERT INTO staging.clients
-                (first_name, last_name, address, phone_number, registration_date, email,
-                deposit_amount, opening_date, closing_date, interest_rate, file_name, timestamp_column)
-                VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)""",
+            cur.execute('INSERT INTO staging.clients (first_name, last_name, address, phone_number, registration_date, '
+                        'email, deposit_amount, opening_date, closing_date, interest_rate, file_name, timestamp_column)'
+                        ' VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)',
                         (first_name, last_name, address, phone_number, registration_date, email, deposit_amount,
                          opening_date, closing_date, interest_rate, file_name, timestamp_column))
 
 
-def loading_companies(companies_info: List[Tuple[Any, Any, Any, Any, Any, Any, Any, Any, Any, Any]], file_name: str) \
-        -> None:
+def loading_companies(companies_info: List[Tuple[Any, Any, Any, Any, Any, Any, Any, Any, Any, Any]], file_name: str,
+                      cur: Any) -> None:
     """Функция загружает информацию по компаниям из списка списков в БД"""
     for company in companies_info:
         name, phone_number, address, registration_date, email, inn, deposit_amount, opening_date, closing_date, \
@@ -98,7 +97,7 @@ def loading_companies(companies_info: List[Tuple[Any, Any, Any, Any, Any, Any, A
                          opening_date, closing_date, interest_rate, file_name, timestamp_column))
 
 
-def loading_bank(bank_info: List[Tuple[str, str, str]], file_name: str) -> None:
+def loading_bank(bank_info: List[Tuple[str, str, str]], file_name: str, cur: Any) -> None:
     """Функция загружает банковскую информацию в БД"""
     for bank_data in bank_info:
         name, address, license_number = bank_data
@@ -123,7 +122,7 @@ def loading_bank(bank_info: List[Tuple[str, str, str]], file_name: str) -> None:
                         (name, address, license_number, timestamp_column))
 
 
-def loading_capital(capital_info: List, file_name: str) -> None:
+def loading_capital(capital_info: List, file_name: str, cur: Any) -> None:
     """Функция загружает информацию по капиталу банка на разные даты из списка списков в БД"""
     for capital_data in capital_info:
         if len(capital_data) == 3:
@@ -165,39 +164,35 @@ def loading_capital(capital_info: List, file_name: str) -> None:
 
 
 def loading_liabilities(liabilities_info: List[Tuple[str, str, str, str, str]],
-                        file_name: str) -> None:
+                        file_name: str, cur: Any) -> None:
     """Функция загружает информацию по пассивам банка на разные даты из списка списков в БД"""
     for liabilities_data in liabilities_info:
         if len(liabilities_data) == 5:
             financial_instruments_debts, securities_obligations, reporting_data, invoices_to_pay, \
             funds_in_accounts = liabilities_data
             timestamp_column = datetime.now()
-            cur.execute("""
-                        SELECT id FROM staging.control_liabilities
-                        WHERE financial_instruments_debts = %s
-                        AND securities_obligations = %s
-                        AND reporting_data = %s
-                        AND invoices_to_pay = %s
-                        AND funds_in_accounts = %s
-                        """,
-                        (financial_instruments_debts, securities_obligations, reporting_data,
-                         invoices_to_pay, funds_in_accounts))
+            cur.execute('SELECT id FROM staging.control_liabilities '
+                        'WHERE financial_instruments_debts = %s '
+                        'AND securities_obligations = %s '
+                        'AND reporting_data = %s '
+                        'AND invoices_to_pay = %s '
+                        'AND funds_in_accounts = %s', (financial_instruments_debts, securities_obligations,
+                                                       reporting_data, invoices_to_pay, funds_in_accounts))
 
             existing_record = cur.fetchone()
 
         elif len(liabilities_data) == 6:
             financial_instruments_debts, securities_obligations, reporting_data, invoices_to_pay, \
             funds_in_accounts, timestamp_column = liabilities_data
-            cur.execute("""
-                        SELECT id FROM staging.control_liabilities
-                        WHERE financial_instruments_debts = %s
-                        AND securities_obligations = %s
-                        AND reporting_data = %s
-                        AND invoices_to_pay = %s
-                        AND funds_in_accounts = %s
-                        AND timestamp_column = %s""",
-                        (financial_instruments_debts, securities_obligations, reporting_data,
-                         invoices_to_pay, funds_in_accounts, timestamp_column))
+            cur.execute('SELECT id FROM staging.control_liabilities '
+                        'WHERE financial_instruments_debts = %s '
+                        'AND securities_obligations = %s '
+                        'AND reporting_data = %s '
+                        'AND invoices_to_pay = %s '
+                        'AND funds_in_accounts = %s '
+                        'AND timestamp_column = %s', (financial_instruments_debts, securities_obligations,
+                                                      reporting_data, invoices_to_pay, funds_in_accounts,
+                                                      timestamp_column))
 
             existing_record = cur.fetchone()
         else:
@@ -206,17 +201,15 @@ def loading_liabilities(liabilities_info: List[Tuple[str, str, str, str, str]],
 
         if existing_record is None:
             # Вставляем новую запись
-            cur.execute("""
-                INSERT INTO staging.control_liabilities
-                (financial_instruments_debts, securities_obligations, reporting_data, invoices_to_pay,
-                         funds_in_accounts, file_name, timestamp_column)
-                VALUES (%s, %s, %s, %s, %s, %s, %s)""",
+            cur.execute('INSERT INTO staging.control_liabilities (financial_instruments_debts, securities_obligations,'
+                        ' reporting_data, invoices_to_pay, funds_in_accounts, file_name, timestamp_column)'
+                        ' VALUES (%s, %s, %s, %s, %s, %s, %s)',
                         (financial_instruments_debts, securities_obligations, reporting_data, invoices_to_pay,
                          funds_in_accounts, file_name, timestamp_column))
 
 
 def loading_assets(assets_info: List[Tuple[str, str, str, str, str, str, str]],
-                   file_name: str) -> None:
+                   file_name: str, cur: Any) -> None:
     """Функция загружает информацию по активам банка на разные даты из списка списков в БД"""
     for assets_data in assets_info:
         if len(assets_data) == 7:
@@ -322,36 +315,36 @@ if __name__ == '__main__':
 
     try:
         if args.loading == 'clients':
-            reading_file(path_file=path_clients, loading_function=loading_clients)
+            reading_file(path_file=path_clients, loading_function=loading_clients, cur=cur)
             logger.info("Загрузка данных клиентов в БД успешно завершена")
 
         elif args.loading == 'companies':
-            reading_file(path_file=path_companies, loading_function=loading_companies)
+            reading_file(path_file=path_companies, loading_function=loading_companies, cur=cur)
             logger.info("Загрузка данных компаний в БД успешно завершена")
 
         elif args.loading == 'bank':
-            reading_file(path_file=path_bank, loading_function=loading_bank)
+            reading_file(path_file=path_bank, loading_function=loading_bank, cur=cur)
             logger.info("Загрузка данных о банке в БД успешно завершена")
 
         elif args.loading == 'capital':
-            reading_file(path_file=path_capital, loading_function=loading_capital)
+            reading_file(path_file=path_capital, loading_function=loading_capital, cur=cur)
             logger.info("Загрузка данных о капитале банка в БД успешно завершена")
 
         elif args.loading == 'liabilities':
-            reading_file(path_file=path_liabilities, loading_function=loading_liabilities)
+            reading_file(path_file=path_liabilities, loading_function=loading_liabilities, cur=cur)
             logger.info("Загрузка данных о пассивах банка в БД успешно завершена")
 
         elif args.loading == 'assets':
-            reading_file(path_file=path_assets, loading_function=loading_assets)
+            reading_file(path_file=path_assets, loading_function=loading_assets, cur=cur)
             logger.info("Загрузка данных о активах банка в БД успешно завершена")
 
         elif args.loading == 'all':
-            reading_file(path_file=path_clients, loading_function=loading_clients)
-            reading_file(path_file=path_companies, loading_function=loading_companies)
-            reading_file(path_file=path_bank, loading_function=loading_bank)
-            reading_file(path_file=path_capital, loading_function=loading_capital)
-            reading_file(path_file=path_liabilities, loading_function=loading_liabilities)
-            reading_file(path_file=path_assets, loading_function=loading_assets)
+            reading_file(path_file=path_clients, loading_function=loading_clients, cur=cur)
+            reading_file(path_file=path_companies, loading_function=loading_companies, cur=cur)
+            reading_file(path_file=path_bank, loading_function=loading_bank, cur=cur)
+            reading_file(path_file=path_capital, loading_function=loading_capital, cur=cur)
+            reading_file(path_file=path_liabilities, loading_function=loading_liabilities, cur=cur)
+            reading_file(path_file=path_assets, loading_function=loading_assets, cur=cur)
             logger.info("Загрузка всех данных в БД успешно завершена")
 
         else:
